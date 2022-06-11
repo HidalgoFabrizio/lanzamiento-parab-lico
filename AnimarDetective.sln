@@ -1,31 +1,224 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31229.75
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AnimarDetective", "AnimarDetective\AnimarDetective.vcxproj", "{1760BF6D-8C43-4501-ADA6-3F0588E22DE9}"
-EndProject
-Global
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
-		Release|x64 = Release|x64
-		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1760BF6D-8C43-4501-ADA6-3F0588E22DE9}.Debug|x64.ActiveCfg = Debug|x64
-		{1760BF6D-8C43-4501-ADA6-3F0588E22DE9}.Debug|x64.Build.0 = Debug|x64
-		{1760BF6D-8C43-4501-ADA6-3F0588E22DE9}.Debug|x86.ActiveCfg = Debug|Win32
-		{1760BF6D-8C43-4501-ADA6-3F0588E22DE9}.Debug|x86.Build.0 = Debug|Win32
-		{1760BF6D-8C43-4501-ADA6-3F0588E22DE9}.Release|x64.ActiveCfg = Release|x64
-		{1760BF6D-8C43-4501-ADA6-3F0588E22DE9}.Release|x64.Build.0 = Release|x64
-		{1760BF6D-8C43-4501-ADA6-3F0588E22DE9}.Release|x86.ActiveCfg = Release|Win32
-		{1760BF6D-8C43-4501-ADA6-3F0588E22DE9}.Release|x86.Build.0 = Release|Win32
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {17BCBD6E-709B-49A7-A1AD-E45C5065483B}
-	EndGlobalSection
-EndGlobal
+#pragma once
+#include "String.h"
+#include <vector>
+#include <stdlib.h>
+#include <time.h>
+#include<iostream>
+#include <cmath>
+using namespace std;
+using namespace System::Drawing;
+
+enum Direccion{Arriba,Abajo,Derecha,Izquierda,Ninguno,Disparar,Recargar};
+
+class Granada
+{
+private:
+	double i;//contador de tiempo
+	double x;//dezplazamiento en eje x
+	double y;//dezplazamiento en eje y
+	int x0;
+	int y0;
+	double t; //tiempo de vuelo
+	double angulo;//angulo inicial
+	double v0;//velocidad inicial
+	double g;//gravedad
+public:
+	Granada(int x0,int y0) {
+		v0 = 40;
+		angulo = 45;
+		g = 9.81;
+		t = 2 * ((v0*sin(angulo))/g);
+		this->x0 = x0;
+		this->y0 = y0;
+		i = 0;
+	}
+	void setX(int valor) { x = valor; }
+	void setY(int valor) { y = valor; }
+	int getX() { return x; }
+	int getY() { return y; }
+	void mover(Graphics^ canvas){
+		if (i <= t) {
+			x = x0 + 20 + (v0 * cos(angulo) * i);
+			y = y0 + 40 - (v0 * sin(angulo) * i - 0.5 * g * i * i);
+			mostrar(canvas);
+			i++;
+		}
+
+	}
+	void mostrar(Graphics^ canvas) {
+		Brush^ br = gcnew SolidBrush(Color::Black);
+		if ((int)y > 0) {
+			canvas->DrawRectangle(gcnew Pen(Color::Red), x, (int)y, 20, 20);
+		}
+	}
+};
+
+class Lanzagranadas
+{
+private:
+
+	std::vector<Granada*> municion;
+	int cant;
+public:
+	Lanzagranadas() {
+		cant = 0;
+	}
+
+	void crearBala(int x0,int y0) { 
+		Granada* aux = new Granada(x0, y0);
+		municion.push_back(aux);
+		cant++;
+	}
+	void eliminarBala() { municion.erase(municion.begin()); cant--; }
+	void mostrarBalas(Graphics^ canvas) { for (size_t i = 0; i < cant; i++) { municion[i]->mostrar(canvas); } }
+	void moverBalas(Graphics^ canvas){ for (size_t i = 0; i < cant; i++) { municion[i]->mover(canvas); } }
+
+	void setCant(int valor) { cant = valor; }
+	int getCant() { return cant; }
+
+	Granada* getGranada(int id) { return municion[id]; }
+};
+
+class Personaje
+{
+private:
+	int x, y;//posicion inicial
+	int dx, dy;//desplazamiento horizontal y vertical
+	int w, h;//ancho y alto
+	int nx, ny; 
+	int nw, nh;
+	int indiceH, indiceW;//indices de los sprites
+	char* imagen;//nombre del archivo sprite
+	int vida;
+public:
+	Personaje();
+	~Personaje();
+	//metodos de animacion
+	void setDxDy(Direccion teclapulsada);
+	void setImagen(char* nombre_archivo);
+	void mover(Graphics ^canvas, Direccion teclapulsada);
+	void mostrar(Graphics^ canvas);	
+	bool colision(int nx,int ny, int nw,int nh) {
+		Rectangle r1(x, y, w, h);
+		Rectangle r2(nx, ny, nw, nh);
+		return r1.IntersectsWith(r2);
+	}
+		
+	//metodos get y set
+	void setX(int valor); void setY(int valor);
+	void setW(int valor); void setH(int valor);
+	void setVida(int valor);
+
+	int getX();	int getY();
+	int getW();	int getH();
+	int getVida();
+
+};
+
+//IMPLEMENTACION
+
+Personaje::Personaje()
+{
+	x = y = 0;;
+	dx=0, dy=1;//empieza con el sprite hacia abajo
+	w= h=0;
+	indiceH = 2;
+	indiceW = 0;
+	imagen = new char[40];
+	vida = 10;
+
+	//nombre del archivo sprite
+}
+
+Personaje::~Personaje(){}
+
+void Personaje::setDxDy(Direccion teclapulsada)
+{
+	switch (teclapulsada)
+	{
+	case Arriba: dx = 0; dy = -5;
+		break;
+	case Abajo:  dx = 0; dy = 5;
+		break;
+	case Derecha: dx = 5; dy = 0;
+		break;
+	case Izquierda: dx = -5; dy = 0;
+		break;
+	case Ninguno: dx = 0; dy = 0;
+		break;
+	default:
+		break;
+	}
+}
+
+void Personaje::setImagen(char* nombre_archivo)
+{
+	//copiar la ruta nombre_Archivo al atributo imagen
+	strcpy(imagen, nombre_archivo);
+	//strcpy funcion que copia una cadena a otra
+
+	//cargar la imagen
+	Bitmap^ mi_sprite = gcnew Bitmap(gcnew System::String(imagen));
+
+	//obtener las dimensiones de cada frame
+	w = mi_sprite->Width / 9; //= 64
+	h = mi_sprite->Height / 4; //= 64
+
+	delete mi_sprite;
+}
+
+void Personaje::mostrar(Graphics^ canvas)
+{
+	//cargar la imagen
+	Bitmap^ mi_sprite = gcnew Bitmap(gcnew System::String(imagen));
+
+	//rectangulo para obtener cuadro por cuadro
+	Rectangle cuadro = Rectangle(indiceW * w, indiceH * h, w, h);
+								//      0  ,    0 ,        W, H
+
+	//hacer zoom
+	Rectangle zoom = Rectangle(x, y, w , h );
+
+	//dibuja la imagen
+	canvas->DrawImage(mi_sprite, zoom, cuadro, GraphicsUnit::Pixel);
+				   //el sprite, agrandar o disminur, posicion del cuadro
+
+}
+
+void Personaje::mover(Graphics^ canvas, Direccion teclapulsada)
+{
+	if (teclapulsada == Arriba)		indiceH = 0;
+	if (teclapulsada == Izquierda)  indiceH = 1;
+	if (teclapulsada == Abajo)		indiceH = 2; 
+	if (teclapulsada == Derecha)	indiceH = 3;
+
+	indiceW++;
+	if (indiceW > 8) indiceW = 0;
+
+	x += dx;
+	y += dy;
+
+	mostrar(canvas);
+
+}
+
+//Get y Set
+void Personaje::setX(int valor) { x = valor; }
+void Personaje::setY(int valor) { y = valor; }
+void Personaje::setW(int valor) { w = valor; }
+void Personaje::setH(int valor) { h = valor; }
+void Personaje::setVida(int valor) { vida = valor; }
+int Personaje::getX() {	return x; }
+int Personaje::getY() { return y; }
+int Personaje::getW() { return w; }
+int Personaje::getH() { return h; }
+int Personaje::getVida() { return vida; }
+
+class enemigos
+{
+	std::vector <Personaje*> enemines;
+public:
+	Personaje* getEnemine(int id) { return enemines[id]; }
+	void add(Personaje* i) { enemines.push_back(i); }
+};
